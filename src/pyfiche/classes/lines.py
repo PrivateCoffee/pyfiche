@@ -48,12 +48,50 @@ body {{
 
     server_version = "PyFiche Lines/dev"
 
-    # TODO: Implement uploading
     def do_POST(self):
-        self.send_response(501)
-        self.end_headers()
-        self.wfile.write(b"Not implemented")
+        client_ip, client_port = self.client_address
 
+        self.logger.info(f"POST request from {client_ip}:{client_port}")
+
+        if (not self.check_allowlist(client_ip)) or self.check_banlist(client_ip):
+            self.logger.info(f"Rejected request from {client_ip}:{client_port}")
+            return self.not_found()
+
+        # Reject any POST requests that aren't to /
+
+        url = urlparse(self.path.rstrip("/"))
+
+        if url.path != "/":
+            return self.not_found()
+
+        # Reject any POST requests that don't have a Content-Length header
+
+        if "Content-Length" not in self.headers:
+            return self.not_found()
+
+        # Upload the file
+
+        content_length = int(self.headers["Content-Length"])
+        content = self.rfile.read(content_length)
+
+        if not content:
+            return self.not_found()
+
+        slug = FicheServer.generate_slug(self.data_dir, self.FICHE_SYMBOLS)
+
+        file_path = self.data_dir / slug / self.DATA_FILE_NAME
+
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with file_path.open("wb") as f:
+            f.write(content)
+
+        # Redirect the user to the new file
+
+        self.send_response(303)
+        self.send_header("Location", f"/{slug}")
+        self.end_headers()
+        
     def not_found(self):
         self.send_response(404)
         self.end_headers()
@@ -99,6 +137,10 @@ body {{
 
     def do_GET(self):
         client_ip, client_port = self.client_address
+
+        if (not self.check_allowlist(client_ip)) or self.check_banlist(client_ip):
+            self.logger.info(f"Rejected request from {client_ip}:{client_port}")
+            return self.not_found()
 
         self.logger.info(f"GET request from {client_ip}:{client_port}")
 
