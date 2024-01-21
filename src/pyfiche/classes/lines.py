@@ -48,6 +48,12 @@ body {{
 
     server_version = "PyFiche Lines/dev"
 
+    # TODO: Implement uploading
+    def do_POST(self):
+        self.send_response(501)
+        self.end_headers()
+        self.wfile.write(b"Not implemented")
+
     def not_found(self):
         self.send_response(404)
         self.end_headers()

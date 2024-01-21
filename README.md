@@ -2,19 +2,19 @@
 
 PyFiche is a simple pastebin optimized for the command line, written in Python
 and heavily inspired by [fiche](https://github.com/solusipse/fiche/), or rather
-a shameless translation.
+a shameless translation. It has no dependencies outside the Python standard
+library.
 
 It also comes with a re-implementation of Lines, the HTTP server that comes
-with Fiche, which this time allows you to upload files, and comes doesn't have
-dependencies outside the standard library. Additionally, PyFiche also comes 
-with a simple TCP server, Recup, to download pastes through netcat without 
-using HTTP(S), in the same way you upload them.
+with Fiche. Additionally, PyFiche also comes with a simple TCP server, Recup,
+to download pastes through netcat without using HTTP(S), in the same way you
+upload them.
 
 ## Installation
 
 ### Dependencies
 
-* Python 3 (tested with 3.11)
+- Python 3 (tested with 3.11)
 
 ### Local Installation
 
