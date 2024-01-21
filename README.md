@@ -6,7 +6,8 @@ a shameless translation. It has no dependencies outside the Python standard
 library.
 
 It also comes with a re-implementation of Lines, the HTTP server that comes
-with Fiche. Additionally, PyFiche also comes with a simple TCP server, Recup,
+with Fiche, which this time around also allows you to upload files using POST
+requests. Additionally, PyFiche also comes with a simple TCP server, Recup,
 to download pastes through netcat without using HTTP(S), in the same way you
 upload them.
 
