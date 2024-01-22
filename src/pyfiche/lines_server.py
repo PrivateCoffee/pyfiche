@@ -16,6 +16,7 @@ def main():
     parser.add_argument('-l', '--log_file', help='Log file path (default: None - log to stdout)')
     parser.add_argument('-b', '--banlist', help='Banlist file path')
     parser.add_argument('-w', '--allowlist', help='Allowlist file path')
+    parser.add_argument('-M', '--max_size', type=int, help='Maximum file size (in bytes) (default: 5242880)')
     parser.add_argument('-D', '--debug', action='store_true', help='Debug mode')
 
     # Parse the arguments

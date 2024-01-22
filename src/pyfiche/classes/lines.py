@@ -67,7 +67,13 @@ body {{
         # Reject any POST requests that don't have a Content-Length header
 
         if "Content-Length" not in self.headers:
-            return self.not_found()
+            return self.invalid_request()
+
+        if not self.headers["Content-Length"].isdigit():
+            return self.invalid_request()
+
+        if int(self.headers["Content-Length"]) > self.max_size:
+            return self.file_too_large()
 
         # Upload the file
 
@@ -91,7 +97,17 @@ body {{
         self.send_response(303)
         self.send_header("Location", f"/{slug}")
         self.end_headers()
-        
+
+    def invalid_request(self):
+        self.send_response(400)
+        self.end_headers()
+        self.wfile.write(b"Invalid request")
+
+    def file_too_large(self):
+        self.send_response(413)
+        self.end_headers()
+        self.wfile.write(b"File too large")
+
     def not_found(self):
         self.send_response(404)
         self.end_headers()
@@ -211,13 +227,16 @@ body {{
             self.wfile.write(full_html.encode("utf-8"))
 
 
-def make_lines_handler(data_dir, logger, banlist=None, allowlist=None):
+def make_lines_handler(
+    data_dir, logger, banlist=None, allowlist=None, max_size=5242880
+):
     class CustomHandler(LinesHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             self.data_dir: pathlib.Path = data_dir
             self.logger: logging.Logger = logger
             self.banlist: Optional[pathlib.Path] = banlist
             self.allowlist: Optional[pathlib.Path] = allowlist
+            self.max_size: int = max_size
 
             super().__init__(*args, **kwargs)
 
@@ -227,6 +246,7 @@ def make_lines_handler(data_dir, logger, banlist=None, allowlist=None):
 class LinesServer:
     port: int = 9997
     listen_addr: str = "0.0.0.0"
+    max_size: int = 5242880  # 5 MB by default
     _data_dir: pathlib.Path = pathlib.Path("data/")
     _log_file: Optional[pathlib.Path] = None
     _banlist: Optional[pathlib.Path] = None
@@ -295,6 +315,7 @@ class LinesServer:
 
         lines.port = args.port or lines.port
         lines.listen_addr = args.listen_addr or lines.listen_addr
+        lines.max_size = args.max_size or lines.max_size
         lines.data_dir = args.data_dir or lines.data_dir
         lines.log_file = args.log_file or lines.log_file
         lines.banlist = args.banlist or lines.banlist
@@ -316,7 +337,7 @@ class LinesServer:
 
     def run(self):
         handler_class = make_lines_handler(
-            self.data_dir, self.logger, self.banlist, self.allowlist
+            self.data_dir, self.logger, self.banlist, self.allowlist, self.max_size
         )
 
         with HTTPServer((self.listen_addr, self.port), handler_class) as httpd:

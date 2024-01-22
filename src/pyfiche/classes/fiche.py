@@ -21,6 +21,7 @@ class FicheServer:
     slug_size: int = 8
     https: bool = False
     buffer_size: int = 4096
+    max_size: int = 5242880 # 5 MB by default
     _output_dir: pathlib.Path = pathlib.Path('data/')
     _log_file: Optional[pathlib.Path] = None
     _banlist: Optional[pathlib.Path] = None
@@ -92,6 +93,7 @@ class FicheServer:
         fiche.banlist = args.banlist or fiche.banlist
         fiche.allowlist = args.allowlist or fiche.allowlist
         fiche.buffer_size = args.buffer_size or fiche.buffer_size
+        fiche.max_size = args.max_size or fiche.max_size
 
         fiche.logger = logging.getLogger('pyfiche')
         fiche.logger.setLevel(logging.INFO if not args.debug else logging.DEBUG)
@@ -180,6 +182,11 @@ class FicheServer:
                         break
 
                     received_data.extend(data)
+
+                    if len(received_data) > self.max_size:
+                        self.logger.error(f"Received data exceeds maximum size ({self.max_size} bytes), terminating connection.")
+                        conn.sendall(b"Data exceeds maximum size.\n")
+                        return
 
             except socket.timeout:
                 pass
