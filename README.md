@@ -38,6 +38,11 @@ With the exception of the `-u` option, all arguments of the original Fiche
 should work as expected. `-u` is not implemented because, well, just use the
 right user in the first place. 🤷‍♀️
 
+Additionally, PyFiche also supports the `-M` option, which allows you to
+specify a maximum paste size in bytes. The default is 5 MiB.
+
+Use `-h` to see all options.
+
 #### Uploading files
 
 ```bash
