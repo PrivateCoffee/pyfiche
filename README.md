@@ -38,6 +38,12 @@ With the exception of the `-u` option, all arguments of the original Fiche
 should work as expected. `-u` is not implemented because, well, just use the
 right user in the first place. 🤷‍♀️
 
+#### Uploading files
+
+```bash
+$ nc <server> <port> < <file>
+```
+
 ### Recup Server
 
 ```bash
@@ -45,11 +51,41 @@ $ source venv/bin/activate
 $ pyfiche-recup # try --help for options
 ```
 
+#### Downloading files
+
+Pipe the ID of an uploaded file to `nc`:
+
+```bash
+$ echo <id> | nc <server> <port> > <file>
+```
+
 ### Lines Server
 
 ```bash
 $ source venv/bin/activate
 $ pyfiche-lines # try --help for options
+```
+
+#### Viewing pastes in a browser
+
+Go to `http://<server>:<port>/<id>`.
+
+#### Downloading raw pastes
+
+```bash
+$ curl http://<server>:<port>/<id>/raw
+```
+
+#### Uploading pastes
+
+```bash
+$ curl -X POST -d '<paste content>' http://<server>:<port>
+```
+
+Or use a file:
+
+```bash
+$ curl -X POST -d @<file> http://<server>:<port>
 ```
 
 ## License
