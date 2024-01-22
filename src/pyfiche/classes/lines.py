@@ -46,6 +46,13 @@ body {{
 </html>
 """
 
+    INDEX_CONTENT = BASE_HTML.format(
+        content="""<h1>PyFiche Lines</h1>
+<p>Welcome to PyFiche Lines, a HTTP server for PyFiche.</p>
+<p>PyFiche Lines is a HTTP server for PyFiche. It allows you to view files uploaded through PyFiche in your browser.</p>
+<p>For more information, see <a href="https://kumig.it/PrivateCoffee/pyfiche">the PyFiche Git repo</a>.</p>"""
+    )
+
     server_version = "PyFiche Lines/dev"
 
     def do_POST(self):
@@ -161,6 +168,16 @@ body {{
         self.logger.info(f"GET request from {client_ip}:{client_port}")
 
         url = urlparse(self.path.rstrip("/"))
+
+        # If the URL is /, display the index page
+        if url.path == "/":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Length", len(self.INDEX_CONTENT))
+            self.end_headers()
+
+            self.wfile.write(self.INDEX_CONTENT.encode("utf-8"))
+            return
 
         # Discard any URLs that aren't of the form /<slug> or /<slug>/raw
         if not len(url.path.split("/")) in [2, 3]:
