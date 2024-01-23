@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 import threading
 
 from . import FicheServer
@@ -27,6 +28,36 @@ def main():
 
     # Parse the arguments
     args = parser.parse_args()
+
+    # Get environment variables
+    domain = os.environ.get('PYFICHE_DOMAIN', 'localhost')
+    port = os.environ.get('PYFICHE_PORT', 9999)
+    listen_addr = os.environ.get('PYFICHE_LISTEN_ADDR', '0.0.0.0')
+    slug_size = os.environ.get('PYFICHE_SLUG_SIZE', 8)
+    https = os.environ.get('PYFICHE_HTTPS', False)
+    output_dir = os.environ.get('PYFICHE_OUTPUT_DIR', 'data/')
+    buffer_size = os.environ.get('PYFICHE_BUFFER_SIZE', 4096)
+    max_size = os.environ.get('PYFICHE_MAX_SIZE', 5242880)
+    log_file = os.environ.get('PYFICHE_LOG_FILE', None)
+    banlist = os.environ.get('PYFICHE_BANLIST', None)
+    allowlist = os.environ.get('PYFICHE_ALLOWLIST', None)
+    debug = os.environ.get('PYFICHE_DEBUG', False)
+    timeout = os.environ.get('PYFICHE_TIMEOUT', None)
+
+    # Set the arguments
+    args.domain = args.domain or domain
+    args.port = args.port or int(port)
+    args.listen_addr = args.listen_addr or listen_addr
+    args.slug_size = args.slug_size or int(slug_size)
+    args.https = args.https or bool(https)
+    args.output_dir = args.output_dir or output_dir
+    args.buffer_size = args.buffer_size or int(buffer_size)
+    args.max_size = args.max_size or int(max_size)
+    args.log_file = args.log_file or log_file
+    args.banlist = args.banlist or banlist
+    args.allowlist = args.allowlist or allowlist
+    args.debug = args.debug or bool(debug)
+    args.timeout = args.timeout or timeout
 
     # Create a Fiche object
     fiche = FicheServer.from_args(args)
