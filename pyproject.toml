@@ -7,7 +7,7 @@ allow-direct-references = true
 
 [project]
 name = "pyfiche"
-version = "0.0.1"
+version = "0.1.0"
 
 authors = [
   { name="Private.coffee Team", email="support@private.coffee" },
