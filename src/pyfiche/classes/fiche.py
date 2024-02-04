@@ -11,18 +11,19 @@ import ipaddress
 
 from typing import Optional, Tuple
 
+
 class FicheServer:
     FICHE_SYMBOLS = string.ascii_letters + string.digits
-    OUTPUT_FILE_NAME = 'index.txt'
+    OUTPUT_FILE_NAME = "index.txt"
 
-    domain: str = 'localhost'
+    domain: str = "localhost"
     port: int = 9999
-    listen_addr: str = '0.0.0.0'
+    listen_addr: str = "0.0.0.0"
     slug_size: int = 8
     https: bool = False
     buffer_size: int = 4096
-    max_size: int = 5242880 # 5 MB by default
-    _output_dir: pathlib.Path = pathlib.Path('data/')
+    max_size: int = 5242880  # 5 MB by default
+    _output_dir: pathlib.Path = pathlib.Path("data/")
     _log_file: Optional[pathlib.Path] = None
     _banlist: Optional[pathlib.Path] = None
     _allowlist: Optional[pathlib.Path] = None
@@ -33,7 +34,7 @@ class FicheServer:
         return self._output_dir
 
     @output_dir.setter
-    def output_dir(self, value: str|pathlib.Path) -> None:
+    def output_dir(self, value: str | pathlib.Path) -> None:
         self._output_dir = pathlib.Path(value) if isinstance(value, str) else value
 
     @property
@@ -45,7 +46,7 @@ class FicheServer:
         return self._log_file
 
     @log_file.setter
-    def log_file(self, value: str|pathlib.Path) -> None:
+    def log_file(self, value: str | pathlib.Path) -> None:
         self._log_file = pathlib.Path(value) if isinstance(value, str) else value
 
     @property
@@ -57,7 +58,7 @@ class FicheServer:
         return self._banlist
 
     @banlist.setter
-    def banlist(self, value: str|pathlib.Path) -> None:
+    def banlist(self, value: str | pathlib.Path) -> None:
         self._banlist = pathlib.Path(value) if isinstance(value, str) else value
 
     @property
@@ -69,7 +70,7 @@ class FicheServer:
         return self._allowlist
 
     @allowlist.setter
-    def allowlist(self, value: str|pathlib.Path) -> None:
+    def allowlist(self, value: str | pathlib.Path) -> None:
         self._allowlist = pathlib.Path(value) if isinstance(value, str) else value
 
     @property
@@ -81,7 +82,7 @@ class FicheServer:
         return f"{'https' if self.https else 'http'}://{self.domain}"
 
     @classmethod
-    def from_args(cls, args) -> 'FicheServer':
+    def from_args(cls, args) -> "FicheServer":
         fiche = cls()
         fiche.domain = args.domain or fiche.domain
         fiche.port = args.port or fiche.port
@@ -95,14 +96,22 @@ class FicheServer:
         fiche.buffer_size = args.buffer_size or fiche.buffer_size
         fiche.max_size = args.max_size or fiche.max_size
 
-        fiche.logger = logging.getLogger('pyfiche')
+        fiche.logger = logging.getLogger("pyfiche")
         fiche.logger.setLevel(logging.INFO if not args.debug else logging.DEBUG)
-        handler = logging.StreamHandler() if not args.log_file else logging.FileHandler(args.log_file)
-        handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        handler = (
+            logging.StreamHandler()
+            if not args.log_file
+            else logging.FileHandler(args.log_file)
+        )
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        )
         fiche.logger.addHandler(handler)
 
         if args.user_name:
-            fiche.logger.fatal("PyFiche does not support switching to a different user. Please run as the appropriate user directly.")
+            fiche.logger.fatal(
+                "PyFiche does not support switching to a different user. Please run as the appropriate user directly."
+            )
 
         return fiche
 
@@ -115,18 +124,37 @@ class FicheServer:
             s.bind((self.listen_addr, self.port))
             s.listen()
 
-            self.logger.info(f"Server started listening on: {self.listen_addr}:{self.port}")
+            self.logger.info(
+                f"Server started listening on: {self.listen_addr}:{self.port}"
+            )
 
             while True:
                 conn, addr = s.accept()
-                threading.Thread(target=self.handle_connection, args=(conn, addr,)).start()
+                threading.Thread(
+                    target=self.handle_connection,
+                    args=(
+                        conn,
+                        addr,
+                    ),
+                ).start()
 
-    def generate_slug(self, length: Optional[int] = None):
-        slug = ''.join(random.choice(self.FICHE_SYMBOLS) for _ in range(length or self.slug_size))
+    def generate_slug(
+        self,
+        length: Optional[int] = None,
+        symbols: Optional[str] = None,
+        output_dir: Optional[str] = None,
+    ):
+        symbols = symbols or self.FICHE_SYMBOLS
 
-        if self.output_dir:
-            while os.path.exists(os.path.join(self.output_dir, slug)):
-                slug = ''.join(random.choice(self.FICHE_SYMBOLS) for _ in range(length + extra_length))
+        slug = "".join(
+            random.choice(symbols) for _ in range(length or self.slug_size)
+        )
+
+        output_dir = output_dir or self.output_dir
+
+        if output_dir:
+            if os.path.exists(os.path.join(output_dir, slug)):
+                return self.generate_slug(length, symbols, output_dir)
 
         return slug
 
@@ -146,7 +174,7 @@ class FicheServer:
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         try:
-            with open(path, 'wb') as file:
+            with open(path, "wb") as file:
                 file.write(data)
             return path
         except Exception as e:
@@ -184,7 +212,9 @@ class FicheServer:
                     received_data.extend(data)
 
                     if len(received_data) > self.max_size:
-                        self.logger.error(f"Received data exceeds maximum size ({self.max_size} bytes), terminating connection.")
+                        self.logger.error(
+                            f"Received data exceeds maximum size ({self.max_size} bytes), terminating connection."
+                        )
                         conn.sendall(b"Data exceeds maximum size.\n")
                         return
 
@@ -208,7 +238,7 @@ class FicheServer:
 
             if file_path:
                 url = f"{self.base_url}/{slug}\n"
-                conn.sendall(url.encode('utf-8'))
+                conn.sendall(url.encode("utf-8"))
                 self.logger.info(f"Received {len(data)} bytes, saved to: {slug}")
             else:
                 self.logger.error("Failed to save data to file.")
@@ -221,10 +251,16 @@ class FicheServer:
 
     def run(self):
         if not self.logger:
-            self.logger = logging.getLogger('pyfiche')
+            self.logger = logging.getLogger("pyfiche")
             self.logger.setLevel(logging.INFO)
-            handler = logging.StreamHandler() if not self.log_file else logging.FileHandler(self.log_file)
-            handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            handler = (
+                logging.StreamHandler()
+                if not self.log_file
+                else logging.FileHandler(self.log_file)
+            )
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+            )
             self.logger.addHandler(handler)
 
         if self.banlist and self.allowlist:
@@ -249,12 +285,14 @@ class FicheServer:
             try:
                 self.output_dir.mkdir(parents=True)
             except Exception as e:
-                self.logger.fatal(f"Error creating output directory ({self.output_dir}): {e}")
+                self.logger.fatal(
+                    f"Error creating output directory ({self.output_dir}): {e}"
+                )
                 exit(1)
 
         if self.log_file_path:
             try:
-                with open(self.log_file_path, 'a'):
+                with open(self.log_file_path, "a"):
                     pass
             except IOError:
                 self.logger.fatal("Log file not writable!")
@@ -270,7 +308,7 @@ class FicheServer:
 
         try:
             ip = ipaddress.ip_address(addr)
-            with open(self.allowlist_path, 'r') as file:
+            with open(self.allowlist_path, "r") as file:
                 for line in file:
                     line = line.strip()
                     if line:
@@ -289,7 +327,7 @@ class FicheServer:
 
         try:
             ip = ipaddress.ip_address(addr)
-            with open(self.banlist_path, 'r') as file:
+            with open(self.banlist_path, "r") as file:
                 for line in file:
                     line = line.strip()
                     if line:

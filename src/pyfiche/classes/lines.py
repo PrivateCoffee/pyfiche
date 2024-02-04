@@ -4,6 +4,8 @@ from typing import Union, Optional
 
 import logging
 import pathlib
+import cgi
+import ipaddress
 
 from .fiche import FicheServer
 
@@ -50,7 +52,16 @@ body {{
         content="""<h1>PyFiche Lines</h1>
 <p>Welcome to PyFiche Lines, a HTTP server for PyFiche.</p>
 <p>PyFiche Lines is a HTTP server for PyFiche. It allows you to view files uploaded through PyFiche in your browser.</p>
-<p>For more information, see <a href="https://kumig.it/PrivateCoffee/pyfiche">the PyFiche Git repo</a>.</p>"""
+<p>For more information, see <a href="https://kumig.it/PrivateCoffee/pyfiche">the PyFiche Git repo</a>.</p>
+
+<h2>Upload a paste</h2>
+
+<form action="" method="post" enctype="multipart/form-data">
+    <label for="file">Paste your content here:</label><br>
+    <textarea id="file" name="file" rows="10" cols="50"></textarea><br>
+    <input type="submit" value="Upload">
+</form>
+"""
     )
 
     server_version = "PyFiche Lines/dev"
@@ -68,33 +79,57 @@ body {{
 
         url = urlparse(self.path.rstrip("/"))
 
-        if url.path != "/":
+        if url.path != "":
             return self.not_found()
 
-        # Reject any POST requests that don't have a Content-Length header
+        # Check if we are handling form data
+        if (
+            "Content-Type" in self.headers
+            and "multipart/form-data" in self.headers["Content-Type"]
+        ):
+            form_data = cgi.FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={
+                    "REQUEST_METHOD": "POST",
+                    "CONTENT_TYPE": self.headers["Content-Type"],
+                },
+            )
 
-        if "Content-Length" not in self.headers:
-            return self.invalid_request()
+            content = form_data.getvalue("file")
 
-        if not self.headers["Content-Length"].isdigit():
-            return self.invalid_request()
+            if len(content) > self.max_size:
+                return self.file_too_large()
 
-        if int(self.headers["Content-Length"]) > self.max_size:
-            return self.file_too_large()
+        else:
+            if "Content-Length" not in self.headers:
+                return self.invalid_request()
 
-        # Upload the file
+            if not self.headers["Content-Length"].isdigit():
+                return self.invalid_request()
 
-        content_length = int(self.headers["Content-Length"])
-        content = self.rfile.read(content_length)
+            if int(self.headers["Content-Length"]) > self.max_size:
+                return self.file_too_large()
+
+            content_length = int(self.headers["Content-Length"])
+            content = self.rfile.read(content_length)
+
+            if len(content) != content_length:
+                return self.invalid_request()
 
         if not content:
             return self.not_found()
 
-        slug = FicheServer.generate_slug(self.data_dir, self.FICHE_SYMBOLS)
+        slug = FicheServer().generate_slug(
+            self.slug_size, self.FICHE_SYMBOLS, self.data_dir
+        )
 
         file_path = self.data_dir / slug / self.DATA_FILE_NAME
 
         file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if isinstance(content, str):
+            content = content.encode("utf-8")
 
         with file_path.open("wb") as f:
             f.write(content)
@@ -170,7 +205,7 @@ body {{
         url = urlparse(self.path.rstrip("/"))
 
         # If the URL is /, display the index page
-        if url.path == "/":
+        if url.path == "":
             self.send_response(200)
             self.send_header("Content-Type", "text/html")
             self.send_header("Content-Length", len(self.INDEX_CONTENT))
@@ -245,7 +280,7 @@ body {{
 
 
 def make_lines_handler(
-    data_dir, logger, banlist=None, allowlist=None, max_size=5242880
+    data_dir, logger, banlist=None, allowlist=None, max_size=5242880, slug_size=8
 ):
     class CustomHandler(LinesHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -254,6 +289,7 @@ def make_lines_handler(
             self.banlist: Optional[pathlib.Path] = banlist
             self.allowlist: Optional[pathlib.Path] = allowlist
             self.max_size: int = max_size
+            self.slug_size: int = slug_size
 
             super().__init__(*args, **kwargs)
 
